@@ -1,50 +1,59 @@
 {%- comment -%}
-  Cart Progress Bar — Tiered incentive component for Shopify cart
-  Two thresholds: free shipping (€39.99) + free gift (€99.99)
-  Configurable via Theme Editor, no code changes needed
+  Cart Progress Bar for Shopify
+  Shows customers how close they are to getting:
+    1. Free shipping (at €39.99)
+    2. A free gift product (at €99.99)
+  Settings can be changed in the Theme Editor — no code needed
 {%- endcomment -%}
 
 {%- liquid
 
-  # Convert euro thresholds to cents (Shopify stores prices in cents)
-  assign shipping_threshold = section.settings.free_shipping_threshold | times: 100
-  assign gift_threshold = section.settings.free_gift_threshold | times: 100
+  # Shopify stores all prices in cents, so we convert euros to cents
+  # Example: 39.99 euros becomes 3999 cents
+  assign shipping_limit = section.settings.free_shipping_threshold | times: 100
+  assign gift_limit = section.settings.free_gift_threshold | times: 100
   assign gift_variant_id = section.settings.free_gift_variant_id
 
-  # Cart subtotal in cents (product prices only, excludes shipping/tax)
+  # Get the total price of all products in the cart (in cents)
   assign cart_total = cart.items_subtotal_price
 
-  # Continuous progress: 0-50% = shipping, 50-100% = gift (bar never shrinks)
-  if cart_total >= gift_threshold
+  # Figure out how full the bar should be
+  # We split the bar in half: left half = shipping goal, right half = gift goal
+  # This way the bar always grows and never goes backwards
+  if cart_total >= gift_limit
+    # Customer got both rewards
     assign progress = 100
     assign status_text = 'Sie erhalten ein Geschenk & Versand kostenlos!'
     assign helper_text = ''
     assign bar_state = 'complete'
-  elsif cart_total >= shipping_threshold
-    assign gift_range = gift_threshold | minus: shipping_threshold
-    assign gift_progress = cart_total | minus: shipping_threshold | times: 50 | divided_by: gift_range
+  elsif cart_total >= shipping_limit
+    # Free shipping unlocked, now working toward the free gift
+    assign gift_range = gift_limit | minus: shipping_limit
+    assign gift_progress = cart_total | minus: shipping_limit | times: 50 | divided_by: gift_range
     assign progress = 50 | plus: gift_progress
-    assign remaining_cents = gift_threshold | minus: cart_total
+    assign remaining_cents = gift_limit | minus: cart_total
     assign remaining = remaining_cents | money_without_trailing_zeros
-    assign status_text = 'Kostenloses Geschenk ab ' | append: gift_threshold | divided_by: 100.0 | money
+    assign status_text = 'Kostenloses Geschenk ab ' | append: gift_limit | divided_by: 100.0 | money
     assign helper_text = 'Noch ' | append: remaining | append: ' bis zum kostenlosen Geschenk'
     assign bar_state = 'active'
   else
-    assign progress = cart_total | times: 50 | divided_by: shipping_threshold
-    assign remaining_cents = shipping_threshold | minus: cart_total
+    # Still working toward free shipping
+    assign progress = cart_total | times: 50 | divided_by: shipping_limit
+    assign remaining_cents = shipping_limit | minus: cart_total
     assign remaining = remaining_cents | money_without_trailing_zeros
-    assign status_text = 'Kostenloser Versand ab ' | append: shipping_threshold | divided_by: 100.0 | money
+    assign status_text = 'Kostenloser Versand ab ' | append: shipping_limit | divided_by: 100.0 | money
     assign helper_text = 'Noch ' | append: remaining | append: ' bis zum kostenlosen Versand'
     assign bar_state = 'active'
   endif
 -%}
 
-<!-- Data attributes pass config to JS for dynamic updates -->
-<!-- ARIA attributes for screen reader accessibility -->
+<!-- The main wrapper -->
+<!-- data-* attributes let JavaScript read the settings later -->
+<!-- role="progressbar" + aria-* make it work with screen readers -->
 <div class="cart-progress"
      data-section-id="{{ section.id }}"
-     data-shipping-threshold="{{ shipping_threshold }}"
-     data-gift-threshold="{{ gift_threshold }}"
+     data-shipping-threshold="{{ shipping_limit }}"
+     data-gift-threshold="{{ gift_limit }}"
      data-gift-variant-id="{{ gift_variant_id }}"
      role="progressbar"
      aria-valuenow="{{ progress }}"
@@ -52,26 +61,26 @@
      aria-valuemax="100"
      aria-label="{{ status_text }}">
 
-  <!-- Current goal text -->
+  <!-- Text above the bar: tells the customer their current goal -->
   <p class="cart-progress__status{% if bar_state == 'complete' %} cart-progress__status--success{% endif %}">
     {{ status_text }}
   </p>
 
-  <!-- Progress bar track + fill -->
+  <!-- The bar itself: gray track with a colored fill -->
   <div class="cart-progress__track">
     <div class="cart-progress__fill{% if bar_state == 'complete' %} cart-progress__fill--complete{% endif %}"
          style="width: {{ progress | at_most: 100 }}%">
     </div>
   </div>
 
-  <!-- Remaining amount (hidden when all rewards unlocked) -->
+  <!-- Text below the bar: shows how much more to spend (hidden when done) -->
   {%- if helper_text != blank -%}
     <p class="cart-progress__helper">{{ helper_text }}</p>
   {%- endif -%}
 </div>
 
-<!-- Colors from spec: Navy #002F6C, Green #4A9500, BG #F0F4F6, Gray #48494B -->
 <style>
+  /* The rounded card that wraps everything */
   .cart-progress {
     background: #F0F4F6;
     border-radius: 10px;
@@ -79,8 +88,10 @@
     margin: 16px 0;
     transition: background 0.4s ease;
   }
+  /* Turns green when both rewards are unlocked */
   .cart-progress.is-complete { background: #e8f5e0; }
 
+  /* Text above the bar */
   .cart-progress__status {
     font-size: 13px;
     font-weight: 500;
@@ -88,8 +99,10 @@
     margin: 0 0 10px;
     transition: color 0.4s ease;
   }
+  /* Green text when done */
   .cart-progress__status--success { color: #4A9500; }
 
+  /* The gray background of the bar */
   .cart-progress__track {
     height: 7px;
     background: #d0d8de;
@@ -97,14 +110,17 @@
     overflow: hidden;
   }
 
+  /* The blue fill that grows as you add items */
   .cart-progress__fill {
     height: 100%;
     background: #002F6C;
     border-radius: 4px;
-    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* smooth easing */
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
+  /* Green fill when done */
   .cart-progress__fill--complete { background: #4A9500; }
 
+  /* Small text below the bar */
   .cart-progress__helper {
     font-size: 12px;
     color: #6b6d70;
@@ -112,29 +128,31 @@
   }
 </style>
 
-<!-- JS handles real-time AJAX updates + auto-adds/removes free gift -->
+<!-- JavaScript: updates the bar in real-time when items are added/removed -->
 <script>
   (function() {
-    const el = document.querySelector('.cart-progress');
+    var el = document.querySelector('.cart-progress');
     if (!el) return;
 
-    const SHIPPING = parseInt(el.dataset.shippingThreshold, 10);
-    const GIFT = parseInt(el.dataset.giftThreshold, 10);
-    const GIFT_VARIANT = el.dataset.giftVariantId;
-    let debounceTimer;
+    // Read the settings from the HTML
+    var SHIPPING = parseInt(el.dataset.shippingThreshold, 10);
+    var GIFT = parseInt(el.dataset.giftThreshold, 10);
+    var GIFT_VARIANT = el.dataset.giftVariantId;
+    var debounceTimer;
 
-    // Format cents to German euros: 3999 → "39,99€"
+    // Turn cents into a nice euro string: 3999 → "39,99€"
     function formatMoney(cents) {
       return (cents / 100).toLocaleString('de-DE', {
         minimumFractionDigits: 2, maximumFractionDigits: 2
       }) + '\u20AC';
     }
 
-    // Shopify Cart API calls
+    // Get the current cart from Shopify
     async function getCart() {
       return (await fetch('/cart.json')).json();
     }
 
+    // Add the free gift product to the cart
     async function addGift() {
       await fetch('/cart/add.js', {
         method: 'POST',
@@ -143,6 +161,7 @@
       });
     }
 
+    // Remove the free gift from the cart
     async function removeGift(lineIndex) {
       await fetch('/cart/change.js', {
         method: 'POST',
@@ -151,21 +170,22 @@
       });
     }
 
-    // Main update: recalculate bar + manage gift product
+    // This runs every time the cart changes
     async function update() {
-      const cart = await getCart();
-      const total = cart.items_subtotal_price;
-      const hasGift = cart.items.some(i => String(i.variant_id) === GIFT_VARIANT);
+      var cart = await getCart();
+      var total = cart.items_subtotal_price;
+      var hasGift = cart.items.some(function(i) { return String(i.variant_id) === GIFT_VARIANT; });
 
-      // Auto-add gift when threshold reached, remove when dropped below
+      // If cart is above the gift limit, add the gift automatically
+      // If cart drops below the gift limit, remove it
       if (total >= GIFT && !hasGift) { await addGift(); return update(); }
       if (total < GIFT && hasGift) {
-        const idx = cart.items.findIndex(i => String(i.variant_id) === GIFT_VARIANT);
+        var idx = cart.items.findIndex(function(i) { return String(i.variant_id) === GIFT_VARIANT; });
         if (idx !== -1) { await removeGift(idx + 1); return update(); }
       }
 
-      // Continuous progress calculation
-      let progress, statusText, helperText, isComplete;
+      // Calculate how full the bar should be
+      var progress, statusText, helperText, isComplete;
       if (total >= GIFT) {
         progress = 100;
         statusText = 'Sie erhalten ein Geschenk & Versand kostenlos!';
@@ -182,10 +202,10 @@
         isComplete = false;
       }
 
-      // Update DOM
-      const fill = el.querySelector('.cart-progress__fill');
-      const status = el.querySelector('.cart-progress__status');
-      const helper = el.querySelector('.cart-progress__helper');
+      // Put the new values on the page
+      var fill = el.querySelector('.cart-progress__fill');
+      var status = el.querySelector('.cart-progress__status');
+      var helper = el.querySelector('.cart-progress__helper');
       fill.style.width = progress + '%';
       fill.classList.toggle('cart-progress__fill--complete', isComplete);
       status.textContent = statusText;
@@ -195,7 +215,7 @@
       if (helper) { helper.textContent = helperText; helper.style.display = helperText ? '' : 'none'; }
     }
 
-    // Listen for cart changes (debounced)
+    // Wait a tiny bit before updating (stops it from running too many times if someone clicks fast)
     document.addEventListener('cart:change', function() {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(update, 150);
@@ -203,7 +223,8 @@
   })();
 </script>
 
-<!-- Theme Editor settings: thresholds + gift product are editable without code -->
+<!-- These settings show up in the Shopify Theme Editor -->
+<!-- Store managers can change the values without touching code -->
 {% schema %}
 {
   "name": "Cart Progress Bar",
@@ -211,22 +232,22 @@
     {
       "type": "number",
       "id": "free_shipping_threshold",
-      "label": "Free Shipping Threshold (€)",
+      "label": "Free Shipping Limit (€)",
       "default": 39.99,
-      "info": "Cart value needed for free shipping"
+      "info": "How much the customer needs to spend for free shipping"
     },
     {
       "type": "number",
       "id": "free_gift_threshold",
-      "label": "Free Gift Threshold (€)",
+      "label": "Free Gift Limit (€)",
       "default": 99.99,
-      "info": "Cart value needed for a free gift"
+      "info": "How much the customer needs to spend to get a free gift"
     },
     {
       "type": "text",
       "id": "free_gift_variant_id",
       "label": "Gift Product Variant ID",
-      "info": "The variant ID of the free gift product"
+      "info": "The ID of the free gift product (find it in Shopify Admin > Products)"
     }
   ]
 }
