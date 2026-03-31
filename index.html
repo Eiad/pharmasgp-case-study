@@ -7,7 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
   <style>
     /* ========================================
        RESET & BASE
@@ -848,11 +847,23 @@
     .mt-3 { margin-top: 1.5rem; }
     .mt-4 { margin-top: 2rem; }
 
-    /* Prism fallback if CDN fails */
+    /* Code syntax colors */
     code[class*="language-"], pre[class*="language-"] {
       color: #cdd6f4;
       text-shadow: none;
     }
+    .syn-comment { color: #6a9955; font-style: italic; }
+    .syn-tag { color: #569cd6; }
+    .syn-attr { color: #9cdcfe; }
+    .syn-string { color: #ce9178; }
+    .syn-keyword { color: #c586c0; }
+    .syn-variable { color: #9cdcfe; }
+    .syn-filter { color: #dcdcaa; }
+    .syn-number { color: #b5cea8; }
+    .syn-property { color: #9cdcfe; }
+    .syn-selector { color: #d7ba7d; }
+    .syn-func { color: #dcdcaa; }
+    .syn-builtin { color: #4ec9b0; }
 
     /* ========================================
        SLIDE / PRESENTATION MODE
@@ -1479,7 +1490,7 @@
         <h3>Core Liquid Logic</h3>
         <div class="code-inline">
           <span class="code-label">Liquid</span>
-          <pre><code class="language-liquid">{%- assign shipping_threshold = section.settings.free_shipping_threshold | times: 100 -%}
+          <pre><code class="language-liquid" id="inlineCode">{%- assign shipping_threshold = section.settings.free_shipping_threshold | times: 100 -%}
 {%- assign gift_threshold = section.settings.free_gift_threshold | times: 100 -%}
 {%- assign cart_total = cart.items_subtotal_price -%}
 
@@ -1841,10 +1852,6 @@
   <!-- ========================================
        SCRIPTS
        ======================================== -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
 
   <script>
     /* ========================================
@@ -2028,11 +2035,71 @@
        ======================================== */
     const liquidSourceCode = document.getElementById('liquidSource').innerHTML;
     const codeEl = document.getElementById('liquidCode');
-    codeEl.textContent = liquidSourceCode;
 
-    if (typeof Prism !== 'undefined') {
-      Prism.highlightElement(codeEl);
+    // Custom syntax highlighter for Liquid/HTML/CSS/JS mix
+    function highlightCode(code) {
+      // Decode HTML entities first for display
+      var text = code
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+      // Escape back for safe HTML insertion
+      function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+      var lines = text.split('\n');
+      return lines.map(function(line) {
+        var raw = line;
+        var e = esc(raw);
+
+        // Comments: # lines, /* */, // lines, <!-- -->, {%- comment -%}
+        if (/^\s*(#|\/\/)/.test(raw)) return '<span class="syn-comment">' + e + '</span>';
+        if (/^\s*\/\*/.test(raw) || /\*\/\s*$/.test(raw)) return '<span class="syn-comment">' + e + '</span>';
+        if (/^\s*\{%-?\s*comment/.test(raw) || /endcomment/.test(raw)) return '<span class="syn-comment">' + e + '</span>';
+        if (/^\s*&lt;!--/.test(e) || /--&gt;\s*$/.test(e)) return '<span class="syn-comment">' + e + '</span>';
+
+        // Liquid tags: {%- ... -%}
+        e = e.replace(/(\{%-?\s*)((?:if|elsif|else|endif|liquid|assign|comment|endcomment|unless|endunless|for|endfor|case|when))/g,
+          '<span class="syn-tag">$1</span><span class="syn-keyword">$2</span>');
+        e = e.replace(/(-%\}|\{%-?)/g, '<span class="syn-tag">$1</span>');
+
+        // Liquid output: {{ ... }}
+        e = e.replace(/(\{\{)(.*?)(\}\})/g,
+          '<span class="syn-tag">$1</span><span class="syn-variable">$2</span><span class="syn-tag">$3</span>');
+
+        // Liquid filters: | filter_name
+        e = e.replace(/(\|\s*)([\w]+)/g, '$1<span class="syn-filter">$2</span>');
+
+        // Strings
+        e = e.replace(/'([^']*)'/g, '<span class="syn-string">\'$1\'</span>');
+        e = e.replace(/"([^"]*)"/g, '<span class="syn-string">"$1"</span>');
+
+        // Numbers
+        e = e.replace(/\b(\d+\.?\d*)\b/g, '<span class="syn-number">$1</span>');
+
+        // CSS selectors/properties
+        e = e.replace(/^\s*(\.[\w-]+)/g, '<span class="syn-selector">$1</span>');
+        e = e.replace(/([\w-]+)\s*:/g, '<span class="syn-property">$1</span>:');
+
+        // JS keywords
+        e = e.replace(/\b(var|const|let|function|async|await|return|if|else|typeof|new)\b/g,
+          '<span class="syn-keyword">$1</span>');
+
+        // JS built-ins
+        e = e.replace(/\b(document|parseInt|String|Math|fetch|JSON|setTimeout|clearTimeout)\b/g,
+          '<span class="syn-builtin">$1</span>');
+
+        // JS function calls
+        e = e.replace(/(\.)(querySelector|querySelectorAll|addEventListener|getElementById|classList|setAttribute|toLocaleString|stringify|some|findIndex|toggle|forEach)\b/g,
+          '$1<span class="syn-func">$2</span>');
+
+        return e;
+      }).join('\n');
     }
+
+    codeEl.innerHTML = highlightCode(liquidSourceCode);
+
+    // Also highlight the inline code snippet
+    var inlineEl = document.getElementById('inlineCode');
+    if (inlineEl) { inlineEl.innerHTML = highlightCode(inlineEl.textContent); }
 
     /* ========================================
        COPY BUTTON
