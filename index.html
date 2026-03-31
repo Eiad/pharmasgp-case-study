@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cart Progress Bar — Case Study</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <style>
+    /* ========================================
+       RESET & BASE
+       ======================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #002F6C;
+      --navy-light: #003d8f;
+      --green: #4A9500;
+      --green-light: #e8f5e0;
+      --gray-text: #48494B;
+      --gray-light: #6b6d70;
+      --bg-light: #F0F4F6;
+      --bg-white: #FFFFFF;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --max-w: 920px;
+      --section-py: 100px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--gray-text);
+      background: var(--bg-white);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ========================================
+       TYPOGRAPHY
+       ======================================== */
+    h1, h2, h3 { color: var(--navy); font-weight: 600; line-height: 1.2; }
+    h1 { font-size: clamp(2rem, 5vw, 3.2rem); letter-spacing: -0.03em; }
+    h2 { font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: -0.02em; margin-bottom: 1rem; }
+    h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+
+    p { max-width: 640px; }
+    a { color: var(--navy); }
+
+    .label {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--navy);
+      opacity: 0.6;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ========================================
+       LAYOUT
+       ======================================== */
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: var(--section-py) 0;
+    }
+
+    .bg-light { background: var(--bg-light); }
+    .bg-white { background: var(--bg-white); }
+
+    /* ========================================
+       SCROLL REVEAL
+       ======================================== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    /* Fallback: if JS hasn't run after 1s, show everything */
+    .no-js .reveal,
+    .reveal-fallback .reveal {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ========================================
+       HERO
+       ======================================== */
+    .hero {
+      min-height: 85vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(165deg, var(--bg-white) 0%, var(--bg-light) 100%);
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      right: -200px;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,47,108,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -80px;
+      left: -100px;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(74,149,0,0.03) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero .case-label {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--navy);
+      opacity: 0.5;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 {
+      margin-bottom: 1rem;
+    }
+
+    .hero h1 span {
+      display: block;
+      font-weight: 300;
+      font-size: 0.5em;
+      letter-spacing: -0.01em;
+      color: var(--gray-light);
+      margin-top: 0.5rem;
+    }
+
+    .hero-line {
+      width: 60px;
+      height: 3px;
+      background: var(--navy);
+      border-radius: 2px;
+      margin: 2rem 0;
+    }
+
+    .hero-meta {
+      font-size: 0.85rem;
+      color: var(--gray-light);
+      line-height: 1.8;
+    }
+
+    /* ========================================
+       CHALLENGE SECTION
+       ======================================== */
+    .challenge-text {
+      margin-bottom: 3rem;
+    }
+
+    .challenge-text p {
+      font-size: 1.05rem;
+      line-height: 1.8;
+    }
+
+    .insight-box {
+      background: var(--bg-white);
+      border-left: 3px solid var(--navy);
+      padding: 1.25rem 1.5rem;
+      margin-top: 1.5rem;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .insight-box p {
+      font-size: 0.9rem;
+      color: var(--gray-light);
+      margin: 0;
+    }
+
+    .insight-box strong {
+      color: var(--navy);
+    }
+
+    /* 3 States Preview */
+    .states-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 2.5rem;
+    }
+
+    @media (max-width: 700px) {
+      .states-grid { grid-template-columns: 1fr; gap: 16px; }
+    }
+
+    .state-card {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .state-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 12px 32px rgba(0,0,0,0.06);
+    }
+
+    .state-card .state-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gray-light);
+      margin-bottom: 12px;
+    }
+
+    .state-card .state-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+
+    /* Mini progress bar in state cards */
+    .mini-progress {
+      background: var(--bg-light);
+      border-radius: 100px;
+      padding: 12px 16px;
+    }
+
+    .mini-progress-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .mini-progress-label.success {
+      color: var(--green);
+    }
+
+    .mini-progress-track {
+      height: 6px;
+      background: #dce3e8;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .mini-progress-fill {
+      height: 100%;
+      background: var(--navy);
+      border-radius: 3px;
+      transition: width 0.5s ease-out;
+    }
+
+    .mini-progress-fill.complete {
+      background: var(--green);
+    }
+
+    .mini-progress-helper {
+      font-size: 0.7rem;
+      color: var(--gray-light);
+      margin-top: 6px;
+    }
+
+    .mini-progress-helper.success {
+      color: var(--green);
+    }
+
+    /* ========================================
+       LIVE DEMO SECTION
+       ======================================== */
+    .demo-wrapper {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    .demo-phone {
+      background: var(--bg-white);
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 16px 48px rgba(0,0,0,0.08);
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .demo-phone-header {
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--bg-light);
+    }
+
+    .demo-phone-header .back {
+      font-size: 0.85rem;
+      color: var(--navy);
+      text-decoration: none;
+      cursor: default;
+    }
+
+    .demo-phone-header .close {
+      font-size: 1.2rem;
+      color: var(--gray-light);
+      cursor: default;
+    }
+
+    .demo-cart-title {
+      text-align: center;
+      padding: 20px 20px 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    /* Progress Bar Component */
+    .progress-component {
+      margin: 16px 20px;
+      background: var(--bg-light);
+      border-radius: 10px;
+      padding: 14px 16px;
+      transition: background 0.4s ease;
+    }
+
+    .progress-component.success-state {
+      background: var(--green-light);
+    }
+
+    .progress-status {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 10px;
+      transition: color 0.4s ease;
+      min-height: 1.2em;
+    }
+
+    .progress-status.success {
+      color: var(--green);
+    }
+
+    .progress-track {
+      height: 7px;
+      background: #d0d8de;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--navy);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease;
+    }
+
+    .progress-fill.complete {
+      background: var(--green);
+    }
+
+    .progress-helper {
+      font-size: 0.72rem;
+      color: var(--gray-light);
+      margin-top: 8px;
+      min-height: 1em;
+      transition: color 0.4s ease;
+    }
+
+    .progress-helper.success {
+      color: var(--green);
+    }
+
+    /* Cart Items */
+    .demo-cart-items {
+      padding: 0 20px;
+    }
+
+    .cart-item {
+      display: flex;
+      align-items: center;
+      padding: 16px 0;
+      border-top: 1px solid var(--bg-light);
+      gap: 12px;
+    }
+
+    .cart-item-image {
+      width: 56px;
+      height: 56px;
+      background: var(--bg-light);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cart-item-image .brand-badge {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      background: var(--green);
+      color: white;
+      font-size: 0.45rem;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      letter-spacing: 0.05em;
+    }
+
+    .cart-item-image .product-icon {
+      font-size: 1.4rem;
+      margin-top: 8px;
+    }
+
+    .cart-item-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .cart-item-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--gray-text);
+      line-height: 1.3;
+    }
+
+    .cart-item-variant {
+      font-size: 0.72rem;
+      color: var(--gray-light);
+      margin-top: 2px;
+    }
+
+    .cart-item-variant span {
+      background: var(--bg-light);
+      padding: 1px 6px;
+      border-radius: 3px;
+      margin-right: 4px;
+    }
+
+    .cart-item-qty {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .qty-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid #d0d8de;
+      background: var(--bg-white);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: var(--gray-text);
+      transition: border-color 0.2s, background 0.2s;
+      user-select: none;
+    }
+
+    .qty-btn:hover {
+      border-color: var(--navy);
+      background: var(--bg-light);
+    }
+
+    .qty-btn:active {
+      transform: scale(0.95);
+    }
+
+    .qty-btn.delete {
+      color: #c0392b;
+      border-color: #e8d0cd;
+    }
+
+    .qty-btn.delete:hover {
+      background: #fdf0ef;
+      border-color: #c0392b;
+    }
+
+    .qty-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--gray-text);
+      min-width: 16px;
+      text-align: center;
+    }
+
+    .cart-item-prices {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .price-original {
+      font-size: 0.75rem;
+      color: var(--gray-light);
+      text-decoration: line-through;
+    }
+
+    .price-current {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--gray-text);
+    }
+
+    /* Gift item animation */
+    .cart-item.gift-item {
+      overflow: hidden;
+      max-height: 0;
+      padding: 0;
+      opacity: 0;
+      transition: max-height 0.4s ease, opacity 0.4s ease, padding 0.4s ease;
+    }
+
+    .cart-item.gift-item.visible {
+      max-height: 120px;
+      padding: 16px 0;
+      opacity: 1;
+    }
+
+    .gift-badge {
+      display: inline-block;
+      background: var(--green-light);
+      color: var(--green);
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+
+    /* Cart Footer */
+    .demo-cart-footer {
+      padding: 16px 20px 20px;
+      border-top: 1px solid var(--bg-light);
+    }
+
+    .cart-guarantees {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .cart-guarantees span {
+      font-size: 0.72rem;
+      color: var(--gray-light);
+    }
+
+    .cart-guarantees span::before {
+      content: '\2713';
+      margin-right: 6px;
+      color: var(--green);
+    }
+
+    .cart-summary-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      padding: 3px 0;
+    }
+
+    .cart-summary-line .line-label { color: var(--gray-light); }
+    .cart-summary-line .line-value { color: var(--gray-text); font-weight: 500; }
+    .cart-summary-line .line-value.free { color: var(--green); }
+
+    .cart-summary-line.subtotal {
+      border-top: 1px solid var(--bg-light);
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+
+    .cart-summary-line.subtotal .line-label { font-weight: 600; color: var(--gray-text); }
+    .cart-summary-line.subtotal .line-value { font-weight: 700; color: var(--navy); }
+
+    .cart-summary-line .original-total {
+      text-decoration: line-through;
+      color: var(--gray-light);
+      font-weight: 400;
+      margin-right: 8px;
+    }
+
+    .gift-summary-line {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+    }
+
+    .gift-summary-line.visible {
+      max-height: 30px;
+      opacity: 1;
+    }
+
+    .checkout-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: var(--navy);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: background 0.2s;
+    }
+
+    .checkout-btn:hover { background: var(--navy-light); }
+
+    .payment-icons {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+      opacity: 0.4;
+      font-size: 0.7rem;
+      color: var(--gray-light);
+    }
+
+    .payment-icon {
+      width: 32px;
+      height: 20px;
+      background: var(--bg-light);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.55rem;
+      font-weight: 600;
+      color: var(--gray-light);
+    }
+
+    /* Demo instruction */
+    .demo-instruction {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 0.82rem;
+      color: var(--gray-light);
+      font-style: italic;
+    }
+
+    /* ========================================
+       APPROACH SECTION
+       ======================================== */
+    .approach-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 2rem;
+    }
+
+    @media (max-width: 700px) {
+      .approach-grid { grid-template-columns: 1fr; }
+    }
+
+    .approach-card {
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,47,108,0.08);
+      background: var(--bg-white);
+    }
+
+    .approach-card h3 {
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 0.75rem;
+    }
+
+    .approach-card h3 .icon {
+      width: 28px;
+      height: 28px;
+      background: var(--bg-light);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .approach-card p, .approach-card ul {
+      font-size: 0.85rem;
+      color: var(--gray-light);
+      line-height: 1.7;
+    }
+
+    .approach-card ul {
+      padding-left: 1.2rem;
+    }
+
+    .approach-card ul li {
+      margin-bottom: 4px;
+    }
+
+    /* Code snippet in approach */
+    .code-inline {
+      background: #1e1e2e;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 2rem;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .code-inline .code-label {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .code-inline pre {
+      margin: 0;
+      font-size: 0.8rem;
+      line-height: 1.7;
+    }
+
+    .code-inline code {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    /* ========================================
+       FULL CODE SECTION
+       ======================================== */
+    .code-block-wrapper {
+      position: relative;
+      margin-top: 1.5rem;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.6);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 0.72rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.9);
+    }
+
+    .copy-btn.copied {
+      background: var(--green);
+      color: white;
+      border-color: var(--green);
+    }
+
+    .full-code-block {
+      background: #1e1e2e;
+      border-radius: 12px;
+      padding: 24px;
+      overflow-x: auto;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .full-code-block pre {
+      margin: 0;
+      font-size: 0.78rem;
+      line-height: 1.7;
+    }
+
+    .full-code-block code {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    .code-annotation {
+      font-size: 0.82rem;
+      color: var(--gray-light);
+      margin-top: 1.25rem;
+      padding-left: 1rem;
+      border-left: 2px solid var(--bg-light);
+    }
+
+    /* ========================================
+       FOOTER
+       ======================================== */
+    .site-footer {
+      padding: 60px 0;
+      text-align: center;
+      border-top: 1px solid var(--bg-light);
+    }
+
+    .site-footer .footer-name {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    .site-footer .footer-context {
+      font-size: 0.8rem;
+      color: var(--gray-light);
+      margin-top: 4px;
+    }
+
+    /* ========================================
+       UTILITY
+       ======================================== */
+    .mt-1 { margin-top: 0.5rem; }
+    .mt-2 { margin-top: 1rem; }
+    .mt-3 { margin-top: 1.5rem; }
+    .mt-4 { margin-top: 2rem; }
+
+    /* Prism fallback if CDN fails */
+    code[class*="language-"], pre[class*="language-"] {
+      color: #cdd6f4;
+      text-shadow: none;
+    }
+
+    /* ========================================
+       SLIDE / PRESENTATION MODE
+       Each section = one presentation slide
+       ======================================== */
+    html {
+      scroll-snap-type: y proximity;
+    }
+
+    section, .hero, .site-footer {
+      scroll-snap-align: start;
+    }
+
+    /* Sections act as slides — generous, centered, breathing room */
+    section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 80px 0;
+    }
+
+    section > .container {
+      width: 100%;
+    }
+
+    /* Hero doesn't need the flex override — already has it */
+    .hero {
+      scroll-snap-align: start;
+    }
+
+    /* Footer is short, doesn't need min-height */
+    .site-footer {
+      min-height: auto;
+    }
+
+    /* Slide number indicators */
+    .slide-nav {
+      position: fixed;
+      right: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .slide-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--navy);
+      opacity: 0.2;
+      transition: opacity 0.3s, transform 0.3s;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+    }
+
+    .slide-dot.active {
+      opacity: 1;
+      transform: scale(1.4);
+    }
+
+    .slide-dot:hover {
+      opacity: 0.6;
+    }
+
+    /* ========================================
+       RESPONSIVE — TABLET (max-width: 900px)
+       ======================================== */
+    @media (max-width: 900px) {
+      :root {
+        --section-py: 60px;
+        --max-w: 100%;
+      }
+
+      section {
+        min-height: auto;
+        padding: 60px 0;
+      }
+
+      .hero {
+        min-height: 70vh;
+      }
+
+      .container {
+        padding: 0 32px;
+      }
+
+      .approach-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      .states-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .state-card {
+        padding: 16px;
+      }
+
+      .state-card .state-value {
+        font-size: 1.2rem;
+      }
+
+      .code-inline pre,
+      .full-code-block pre {
+        font-size: 0.72rem;
+      }
+
+      .slide-nav {
+        right: 12px;
+      }
+    }
+
+    /* ========================================
+       RESPONSIVE — MOBILE (max-width: 700px)
+       ======================================== */
+    @media (max-width: 700px) {
+      :root {
+        --section-py: 48px;
+      }
+
+      html {
+        scroll-snap-type: none;
+      }
+
+      section {
+        min-height: auto;
+        padding: 48px 0;
+        align-items: flex-start;
+      }
+
+      .hero {
+        min-height: 80vh;
+        padding: 48px 0;
+      }
+
+      .container {
+        padding: 0 20px;
+      }
+
+      h1 { font-size: 1.8rem; }
+      h2 { font-size: 1.3rem; }
+
+      .hero h1 span {
+        font-size: 0.55em;
+      }
+
+      .hero-line {
+        margin: 1.5rem 0;
+      }
+
+      /* Challenge */
+      .challenge-text p {
+        font-size: 0.95rem;
+      }
+
+      .states-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .state-card .state-value {
+        font-size: 1.3rem;
+      }
+
+      .insight-box {
+        padding: 1rem 1.25rem;
+      }
+
+      /* Demo */
+      .demo-wrapper {
+        max-width: 100%;
+      }
+
+      .demo-phone {
+        border-radius: 16px;
+      }
+
+      /* Approach */
+      .approach-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .approach-card {
+        padding: 18px;
+      }
+
+      .code-inline {
+        padding: 14px;
+        border-radius: 8px;
+      }
+
+      .code-inline pre,
+      .full-code-block pre {
+        font-size: 0.68rem;
+        line-height: 1.6;
+      }
+
+      .full-code-block {
+        padding: 16px;
+        border-radius: 8px;
+        max-height: 400px;
+      }
+
+      /* Slide nav hidden on mobile — too small */
+      .slide-nav {
+        display: none;
+      }
+
+      /* Footer */
+      .site-footer {
+        padding: 40px 0;
+      }
+    }
+
+    /* ========================================
+       RESPONSIVE — SMALL MOBILE (max-width: 400px)
+       ======================================== */
+    @media (max-width: 400px) {
+      .container {
+        padding: 0 16px;
+      }
+
+      h1 { font-size: 1.5rem; }
+
+      .demo-phone-header {
+        padding: 12px 16px;
+      }
+
+      .demo-cart-title {
+        font-size: 1rem;
+        padding: 16px 16px 0;
+      }
+
+      .progress-component {
+        margin: 12px 16px;
+        padding: 12px 14px;
+      }
+
+      .demo-cart-items {
+        padding: 0 16px;
+      }
+
+      .demo-cart-footer {
+        padding: 12px 16px 16px;
+      }
+
+      .cart-item-image {
+        width: 44px;
+        height: 44px;
+      }
+
+      .cart-item-name {
+        font-size: 0.8rem;
+      }
+
+      .payment-icons {
+        gap: 4px;
+      }
+    }
+
+    /* ========================================
+       LARGE DESKTOP (min-width: 1200px)
+       ======================================== */
+    @media (min-width: 1200px) {
+      section {
+        min-height: 100vh;
+      }
+
+      .hero {
+        min-height: 100vh;
+      }
+
+      .container {
+        padding: 0 40px;
+      }
+    }
+
+    /* ========================================
+       PRINT STYLES
+       ======================================== */
+    @media print {
+      html { scroll-snap-type: none; }
+      section { min-height: auto; page-break-inside: avoid; padding: 40px 0; }
+      .hero { min-height: auto; }
+      .reveal { opacity: 1 !important; transform: none !important; }
+      .slide-nav { display: none; }
+      .demo-instruction { display: none; }
+      .checkout-btn { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .progress-fill, .mini-progress-fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================
+       HERO
+       ======================================== -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content reveal">
+        <div class="case-label">Case Study &mdash; PharmaSGP eCommerce</div>
+        <h1>
+          Cart Progress Bar
+          <span>A Tiered Incentive System for Shopify E-Commerce</span>
+        </h1>
+        <div class="hero-line"></div>
+        <div class="hero-meta">
+          Shopify Liquid &middot; HTML &middot; CSS &middot; JavaScript<br>
+          Ashraf &middot; March 2026
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================
+       THE CHALLENGE
+       ======================================== -->
+  <section class="bg-light" id="challenge">
+    <div class="container">
+      <div class="challenge-text reveal">
+        <div class="label">The Challenge</div>
+        <h2>Motivating Customers to Add More to Their Cart</h2>
+        <p>
+          Design and implement a dynamic progress bar for the Shopify shopping cart that guides customers
+          through two value thresholds: <strong>free shipping</strong> at &euro;39,99 and a
+          <strong>free gift product</strong> at &euro;99,99. The component must update in real-time as
+          the cart value changes and automatically add the gift item when the threshold is reached.
+        </p>
+        <div class="insight-box">
+          <p>
+            <strong>Why this works:</strong> The goal-gradient effect &mdash; a well-documented principle
+            in behavioral economics &mdash; shows that people accelerate their effort as they approach a
+            reward. A visible progress bar leverages this to increase average order value.
+          </p>
+        </div>
+      </div>
+
+      <!-- 3 Static State Cards -->
+      <div class="states-grid reveal">
+        <div class="state-card">
+          <div class="state-label">State 1 &mdash; Below Threshold</div>
+          <div class="state-value">&euro;29,99</div>
+          <div class="mini-progress">
+            <div class="mini-progress-label">Kostenloser Versand ab 39,99&euro;</div>
+            <div class="mini-progress-track">
+              <div class="mini-progress-fill" style="width: 37.5%"></div>
+            </div>
+            <div class="mini-progress-helper">Noch 10,00&euro; bis zum kostenlosen Versand</div>
+          </div>
+        </div>
+
+        <div class="state-card">
+          <div class="state-label">State 2 &mdash; Shipping Unlocked</div>
+          <div class="state-value">&euro;74,99</div>
+          <div class="mini-progress">
+            <div class="mini-progress-label">Kostenloses Geschenk ab 99,99&euro;</div>
+            <div class="mini-progress-track">
+              <div class="mini-progress-fill" style="width: 79%"></div>
+            </div>
+            <div class="mini-progress-helper">Noch 25,00&euro; bis zum kostenlosen Geschenk</div>
+          </div>
+        </div>
+
+        <div class="state-card">
+          <div class="state-label">State 3 &mdash; All Rewards</div>
+          <div class="state-value">&euro;116,96</div>
+          <div class="mini-progress">
+            <div class="mini-progress-label success">Sie erhalten ein Geschenk &amp; Versand kostenlos!</div>
+            <div class="mini-progress-track">
+              <div class="mini-progress-fill complete" style="width: 100%"></div>
+            </div>
+            <div class="mini-progress-helper success">Alle Vorteile freigeschaltet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================
+       LIVE INTERACTIVE DEMO
+       ======================================== -->
+  <section class="bg-white" id="demo">
+    <div class="container">
+      <div class="reveal" style="text-align:center; margin-bottom: 2.5rem;">
+        <div class="label">Interactive Demo</div>
+        <h2>Try It Live</h2>
+        <p style="margin: 0.5rem auto 0; text-align: center;">
+          Adjust the quantity to see the progress bar respond in real-time across all three states.
+        </p>
+      </div>
+
+      <div class="demo-wrapper reveal">
+        <div class="demo-phone">
+          <!-- Phone Header -->
+          <div class="demo-phone-header">
+            <span class="back">&lsaquo; Weiter einkaufen</span>
+            <span class="close">&times;</span>
+          </div>
+
+          <div class="demo-cart-title">Ihr Warenkorb</div>
+
+          <!-- Progress Bar -->
+          <div class="progress-component" id="progressComponent"
+               role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+               aria-label="Cart progress toward rewards">
+            <div class="progress-status" id="progressStatus">Kostenloser Versand ab 39,99&euro;</div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-helper" id="progressHelper"></div>
+          </div>
+
+          <!-- Cart Items -->
+          <div class="demo-cart-items">
+            <!-- Main Product -->
+            <div class="cart-item">
+              <div class="cart-item-image">
+                <div class="brand-badge">Kijimea</div>
+                <div class="product-icon">&#x1F48A;</div>
+              </div>
+              <div class="cart-item-details">
+                <div class="cart-item-name">Kijimea K53 Advance</div>
+                <div class="cart-item-variant"><span>Einzelkauf</span> 28 Kapseln</div>
+                <div class="cart-item-qty">
+                  <button class="qty-btn delete" id="qtyDown" aria-label="Decrease quantity">&minus;</button>
+                  <span class="qty-value" id="qtyDisplay">1</span>
+                  <button class="qty-btn" id="qtyUp" aria-label="Increase quantity">+</button>
+                </div>
+              </div>
+              <div class="cart-item-prices">
+                <div class="price-original" id="priceOriginal">31,99&euro;</div>
+                <div class="price-current" id="priceCurrent">29,99&euro;</div>
+              </div>
+            </div>
+
+            <!-- Gift Item (hidden initially) -->
+            <div class="cart-item gift-item" id="giftItem">
+              <div class="cart-item-image" style="background: var(--green-light);">
+                <div class="brand-badge">Kijimea</div>
+                <div class="product-icon">&#x1F381;</div>
+              </div>
+              <div class="cart-item-details">
+                <div class="cart-item-name">Kijimea Liquid</div>
+                <div class="gift-badge">Geschenk</div>
+              </div>
+              <div class="cart-item-prices">
+                <div class="price-original">13,99&euro;</div>
+                <div class="price-current" style="color: var(--green);">0,00&euro;</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="demo-cart-footer">
+            <div class="cart-guarantees">
+              <span>30 Tage Geld-zur&uuml;ck-Garantie</span>
+              <span>Lieferung in 1-3 Werktagen</span>
+            </div>
+
+            <div class="cart-summary-line" id="shippingLine">
+              <span class="line-label">Versand</span>
+              <span class="line-value" id="shippingValue">4,99&euro;</span>
+            </div>
+
+            <div class="cart-summary-line gift-summary-line" id="giftSummaryLine">
+              <span class="line-label">Geschenk</span>
+              <span class="line-value free">0,00&euro;</span>
+            </div>
+
+            <div class="cart-summary-line subtotal">
+              <span class="line-label">Zwischensumme</span>
+              <span class="line-value">
+                <span class="original-total" id="originalTotal"></span>
+                <span id="subtotalValue">29,99&euro;</span>
+              </span>
+            </div>
+
+            <button class="checkout-btn">Jetzt zur Kasse</button>
+
+            <div class="payment-icons">
+              <div class="payment-icon">VISA</div>
+              <div class="payment-icon">MC</div>
+              <div class="payment-icon">AMEX</div>
+              <div class="payment-icon">PP</div>
+              <div class="payment-icon">GPay</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="demo-instruction">Use the + / &minus; buttons to change the quantity and watch the progress bar update.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================
+       TECHNICAL APPROACH
+       ======================================== -->
+  <section class="bg-light" id="approach">
+    <div class="container">
+      <div class="reveal">
+        <div class="label">Technical Approach</div>
+        <h2>How It Works</h2>
+      </div>
+
+      <div class="approach-grid reveal">
+        <div class="approach-card">
+          <h3><span class="icon">&#9881;</span> Architecture</h3>
+          <p>
+            Server-side rendering with Shopify Liquid for the initial state,
+            enhanced with JavaScript for dynamic AJAX cart updates via the
+            Section Rendering API. Zero layout shift on load.
+          </p>
+        </div>
+
+        <div class="approach-card">
+          <h3><span class="icon">&#9881;</span> Configurable Thresholds</h3>
+          <p>
+            Thresholds are defined in the Shopify theme settings via a
+            <code>{% schema %}</code> block &mdash; editable directly in the theme
+            editor. No code changes needed for campaigns.
+          </p>
+        </div>
+
+        <div class="approach-card">
+          <h3><span class="icon">&#9881;</span> Progress Calculation</h3>
+          <p>
+            Progress is always measured relative to the <strong>next milestone</strong>.
+            When the first threshold is crossed, the bar resets to measure against the
+            second &mdash; the context text guides the user naturally.
+          </p>
+        </div>
+
+        <div class="approach-card">
+          <h3><span class="icon">&#9881;</span> Free Gift Logic</h3>
+          <p>
+            JavaScript monitors the cart subtotal. When &euro;99,99 is reached, the
+            gift variant is added via <code>/cart/add.js</code>. If the cart drops
+            below, it's removed via <code>/cart/change.js</code>. Debounced to
+            prevent race conditions.
+          </p>
+        </div>
+      </div>
+
+      <!-- Key Code Snippet -->
+      <div class="reveal mt-4">
+        <h3>Core Liquid Logic</h3>
+        <div class="code-inline">
+          <span class="code-label">Liquid</span>
+          <pre><code class="language-liquid">{%- assign shipping_threshold = section.settings.free_shipping_threshold | times: 100 -%}
+{%- assign gift_threshold = section.settings.free_gift_threshold | times: 100 -%}
+{%- assign cart_total = cart.items_subtotal_price -%}
+
+{%- comment -%} Continuous progress: 0-50% = shipping, 50-100% = gift {%- endcomment -%}
+{%- if cart_total >= gift_threshold -%}
+  {%- assign progress = 100 -%}
+  {%- assign status_text = 'Sie erhalten ein Geschenk & Versand kostenlos!' -%}
+  {%- assign bar_state = 'complete' -%}
+{%- elsif cart_total >= shipping_threshold -%}
+  {%- assign gift_range = gift_threshold | minus: shipping_threshold -%}
+  {%- assign gift_progress = cart_total | minus: shipping_threshold | times: 50 | divided_by: gift_range -%}
+  {%- assign progress = 50 | plus: gift_progress -%}
+  {%- assign remaining = gift_threshold | minus: cart_total -%}
+  {%- assign status_text = 'Kostenloses Geschenk ab 99,99€' -%}
+  {%- assign bar_state = 'active' -%}
+{%- else -%}
+  {%- assign progress = cart_total | times: 50 | divided_by: shipping_threshold -%}
+  {%- assign remaining = shipping_threshold | minus: cart_total -%}
+  {%- assign status_text = 'Kostenloser Versand ab 39,99€' -%}
+  {%- assign bar_state = 'active' -%}
+{%- endif -%}</code></pre>
+        </div>
+      </div>
+
+      <!-- Accessibility note -->
+      <div class="reveal mt-4">
+        <div class="approach-card" style="border-left: 3px solid var(--green); border-color: rgba(74,149,0,0.3);">
+          <h3><span class="icon">&#9881;</span> Accessibility</h3>
+          <ul>
+            <li><code>role="progressbar"</code> with <code>aria-valuenow</code>, <code>aria-valuemin</code>, <code>aria-valuemax</code></li>
+            <li>Descriptive <code>aria-label</code> updated dynamically with current state</li>
+            <li>Text labels always visible &mdash; color is never the sole indicator</li>
+            <li>All interactive elements are keyboard-navigable</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================
+       FULL SHOPIFY CODE
+       ======================================== -->
+  <section class="bg-white" id="code">
+    <div class="container">
+      <div class="reveal">
+        <div class="label">Production Code</div>
+        <h2>Shopify Liquid Component</h2>
+        <p>
+          The complete, production-ready snippet below drops into any Shopify theme's
+          cart template. Thresholds and the gift product are configurable via the theme editor.
+        </p>
+      </div>
+
+      <div class="code-block-wrapper reveal">
+        <button class="copy-btn" id="copyBtn" onclick="copyCode()">Copy</button>
+        <div class="full-code-block">
+          <pre><code class="language-liquid" id="liquidCode"></code></pre>
+        </div>
+      </div>
+
+      <div class="code-annotation reveal mt-3">
+        <p>
+          <strong>Key details:</strong> All monetary values use Shopify's cent-based system internally.
+          The <code>{% schema %}</code> block at the bottom exposes three settings in the theme editor:
+          free shipping threshold, free gift threshold, and the gift product's variant ID.
+          The JavaScript handles AJAX cart updates with debouncing and automatic gift product management.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hidden template for Liquid source code (avoids </script> breaking issues) -->
+  <template id="liquidSource">{%- comment -%}
+  Cart Progress Bar Component
+  Displays a tiered progress bar in the shopping cart with two thresholds:
+  1. Free shipping
+  2. Free gift product
+
+  Usage: Include this snippet in your cart template or cart drawer.
+  Configure thresholds and gift product in Theme Settings.
+{%- endcomment -%}
+
+{%- liquid
+  assign shipping_threshold = section.settings.free_shipping_threshold | times: 100
+  assign gift_threshold = section.settings.free_gift_threshold | times: 100
+  assign gift_variant_id = section.settings.free_gift_variant_id
+  assign cart_total = cart.items_subtotal_price
+
+  comment
+    Continuous progress: 0-50% = toward shipping, 50-100% = toward gift
+  endcomment
+
+  if cart_total >= gift_threshold
+    assign progress = 100
+    assign status_text = 'Sie erhalten ein Geschenk &amp; Versand kostenlos!'
+    assign helper_text = ''
+    assign bar_state = 'complete'
+  elsif cart_total >= shipping_threshold
+    assign gift_range = gift_threshold | minus: shipping_threshold
+    assign gift_progress = cart_total | minus: shipping_threshold | times: 50 | divided_by: gift_range
+    assign progress = 50 | plus: gift_progress
+    assign remaining_cents = gift_threshold | minus: cart_total
+    assign remaining = remaining_cents | money_without_trailing_zeros
+    assign status_text = 'Kostenloses Geschenk ab 99,99€'
+    assign helper_text = 'Noch ' | append: remaining | append: ' bis zum kostenlosen Geschenk'
+    assign bar_state = 'active'
+  else
+    assign progress = cart_total | times: 50 | divided_by: shipping_threshold
+    assign remaining_cents = shipping_threshold | minus: cart_total
+    assign remaining = remaining_cents | money_without_trailing_zeros
+    assign status_text = 'Kostenloser Versand ab 39,99€'
+    assign helper_text = 'Noch ' | append: remaining | append: ' bis zum kostenlosen Versand'
+    assign bar_state = 'active'
+  endif
+-%}
+
+&lt;div class="cart-progress"
+     data-section-id="{{ section.id }}"
+     data-shipping-threshold="{{ shipping_threshold }}"
+     data-gift-threshold="{{ gift_threshold }}"
+     data-gift-variant-id="{{ gift_variant_id }}"
+     role="progressbar"
+     aria-valuenow="{{ progress }}"
+     aria-valuemin="0"
+     aria-valuemax="100"
+     aria-label="{{ status_text }}"&gt;
+
+  &lt;p class="cart-progress__status{% if bar_state == 'complete' %} cart-progress__status--success{% endif %}"&gt;
+    {{ status_text }}
+  &lt;/p&gt;
+
+  &lt;div class="cart-progress__track"&gt;
+    &lt;div class="cart-progress__fill{% if bar_state == 'complete' %} cart-progress__fill--complete{% endif %}"
+         style="width: {{ progress | at_most: 100 }}%"&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  {%- if helper_text != blank -%}
+    &lt;p class="cart-progress__helper"&gt;{{ helper_text }}&lt;/p&gt;
+  {%- endif -%}
+&lt;/div&gt;
+
+&lt;style&gt;
+  .cart-progress {
+    background: #F0F4F6;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 16px 0;
+    transition: background 0.4s ease;
+  }
+  .cart-progress.is-complete { background: #e8f5e0; }
+  .cart-progress__status {
+    font-size: 13px;
+    font-weight: 500;
+    color: #002F6C;
+    margin: 0 0 10px;
+    transition: color 0.4s ease;
+  }
+  .cart-progress__status--success { color: #4A9500; }
+  .cart-progress__track {
+    height: 7px;
+    background: #d0d8de;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .cart-progress__fill {
+    height: 100%;
+    background: #002F6C;
+    border-radius: 4px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .cart-progress__fill--complete { background: #4A9500; }
+  .cart-progress__helper {
+    font-size: 12px;
+    color: #6b6d70;
+    margin: 8px 0 0;
+  }
+&lt;/style&gt;
+
+&lt;script&gt;
+  (function() {
+    const el = document.querySelector('.cart-progress');
+    if (!el) return;
+
+    const SHIPPING = parseInt(el.dataset.shippingThreshold, 10);
+    const GIFT = parseInt(el.dataset.giftThreshold, 10);
+    const GIFT_VARIANT = el.dataset.giftVariantId;
+    let debounceTimer;
+
+    function formatMoney(cents) {
+      return (cents / 100).toLocaleString('de-DE', {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+      }) + '\u20AC';
+    }
+
+    async function getCart() {
+      const res = await fetch('/cart.json');
+      return res.json();
+    }
+
+    async function addGift() {
+      await fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: [{ id: GIFT_VARIANT, quantity: 1 }] })
+      });
+    }
+
+    async function removeGift(lineIndex) {
+      await fetch('/cart/change.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ line: lineIndex, quantity: 0 })
+      });
+    }
+
+    async function update() {
+      const cart = await getCart();
+      const total = cart.items_subtotal_price;
+      const hasGift = cart.items.some(i =&gt; String(i.variant_id) === GIFT_VARIANT);
+
+      if (total &gt;= GIFT &amp;&amp; !hasGift) {
+        await addGift();
+        return update();
+      } else if (total &lt; GIFT &amp;&amp; hasGift) {
+        const idx = cart.items.findIndex(i =&gt; String(i.variant_id) === GIFT_VARIANT);
+        if (idx !== -1) { await removeGift(idx + 1); return update(); }
+      }
+
+      let progress, statusText, helperText, isComplete;
+      if (total &gt;= GIFT) {
+        progress = 100;
+        statusText = 'Sie erhalten ein Geschenk &amp; Versand kostenlos!';
+        helperText = '';
+        isComplete = true;
+      } else if (total &gt;= SHIPPING) {
+        progress = Math.min((total / GIFT) * 100, 100);
+        statusText = 'Kostenloses Geschenk ab ' + formatMoney(GIFT);
+        helperText = 'Noch ' + formatMoney(GIFT - total) + ' bis zum kostenlosen Geschenk';
+        isComplete = false;
+      } else {
+        progress = Math.min((total / SHIPPING) * 100, 100);
+        statusText = 'Kostenloser Versand ab ' + formatMoney(SHIPPING);
+        helperText = 'Noch ' + formatMoney(SHIPPING - total) + ' bis zum kostenlosen Versand';
+        isComplete = false;
+      }
+
+      const fill = el.querySelector('.cart-progress__fill');
+      const status = el.querySelector('.cart-progress__status');
+      const helper = el.querySelector('.cart-progress__helper');
+      fill.style.width = progress + '%';
+      fill.classList.toggle('cart-progress__fill--complete', isComplete);
+      status.textContent = statusText;
+      status.classList.toggle('cart-progress__status--success', isComplete);
+      el.classList.toggle('is-complete', isComplete);
+      el.setAttribute('aria-valuenow', Math.round(progress));
+      if (helper) {
+        helper.textContent = helperText;
+        helper.style.display = helperText ? '' : 'none';
+      }
+    }
+
+    document.addEventListener('cart:change', function() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(update, 150);
+    });
+  })();
+&lt;/script&gt;
+
+{% schema %}
+{
+  "name": "Cart Progress Bar",
+  "settings": [
+    {
+      "type": "number",
+      "id": "free_shipping_threshold",
+      "label": "Free Shipping Threshold (€)",
+      "default": 39.99,
+      "info": "Cart value needed for free shipping"
+    },
+    {
+      "type": "number",
+      "id": "free_gift_threshold",
+      "label": "Free Gift Threshold (€)",
+      "default": 99.99,
+      "info": "Cart value needed for a free gift"
+    },
+    {
+      "type": "text",
+      "id": "free_gift_variant_id",
+      "label": "Gift Product Variant ID",
+      "info": "The variant ID of the free gift product"
+    }
+  ]
+}
+{% endschema %}</template>
+
+  <!-- ========================================
+       FOOTER
+       ======================================== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-name">Ashraf</div>
+      <div class="footer-context">Case Study Submission &middot; PharmaSGP &middot; March 2026</div>
+    </div>
+  </footer>
+
+  <!-- Slide Navigation Dots -->
+  <nav class="slide-nav" id="slideNav" aria-label="Slide navigation">
+    <button class="slide-dot active" data-section="0" aria-label="Slide 1"></button>
+    <button class="slide-dot" data-section="1" aria-label="Slide 2"></button>
+    <button class="slide-dot" data-section="2" aria-label="Slide 3"></button>
+    <button class="slide-dot" data-section="3" aria-label="Slide 4"></button>
+    <button class="slide-dot" data-section="4" aria-label="Slide 5"></button>
+  </nav>
+
+  <!-- ========================================
+       SCRIPTS
+       ======================================== -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+
+  <script>
+    /* ========================================
+       CONFIGURATION
+       ======================================== */
+    const SHIPPING_THRESHOLD = 39.99;
+    const GIFT_THRESHOLD = 99.99;
+    const UNIT_PRICE = 29.99;
+    const UNIT_ORIGINAL = 31.99;
+    const GIFT_ORIGINAL = 13.99;
+
+    /* ========================================
+       STATE
+       ======================================== */
+    let quantity = 1;
+    let debounceTimer = null;
+
+    /* ========================================
+       DOM REFS
+       ======================================== */
+    const qtyDisplay = document.getElementById('qtyDisplay');
+    const qtyUp = document.getElementById('qtyUp');
+    const qtyDown = document.getElementById('qtyDown');
+    const priceOriginal = document.getElementById('priceOriginal');
+    const priceCurrent = document.getElementById('priceCurrent');
+    const progressComponent = document.getElementById('progressComponent');
+    const progressFill = document.getElementById('progressFill');
+    const progressStatus = document.getElementById('progressStatus');
+    const progressHelper = document.getElementById('progressHelper');
+    const giftItem = document.getElementById('giftItem');
+    const shippingValue = document.getElementById('shippingValue');
+    const giftSummaryLine = document.getElementById('giftSummaryLine');
+    const originalTotal = document.getElementById('originalTotal');
+    const subtotalValue = document.getElementById('subtotalValue');
+
+    /* ========================================
+       FORMATTING
+       ======================================== */
+    function formatEuro(value) {
+      return value.toLocaleString('de-DE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) + '\u20AC';
+    }
+
+    /* ========================================
+       CART UPDATE
+       ======================================== */
+    function updateCart() {
+      const cartValue = quantity * UNIT_PRICE;
+      const cartOriginal = quantity * UNIT_ORIGINAL;
+      const isShippingFree = cartValue >= SHIPPING_THRESHOLD;
+      const isGiftUnlocked = cartValue >= GIFT_THRESHOLD;
+
+      // Quantity display
+      qtyDisplay.textContent = quantity;
+
+      // Prices
+      priceOriginal.textContent = formatEuro(cartOriginal);
+      priceCurrent.textContent = formatEuro(cartValue);
+
+      // Progress bar
+      let progress, statusText, helperText, isComplete;
+
+      // Continuous progress: 0-50% = toward shipping, 50-100% = toward gift
+      if (isGiftUnlocked) {
+        progress = 100;
+        statusText = 'Sie erhalten ein Geschenk & Versand kostenlos!';
+        helperText = '';
+        isComplete = true;
+      } else if (isShippingFree) {
+        // 50% base + progress from shipping to gift mapped to 50-100%
+        const giftProgress = (cartValue - SHIPPING_THRESHOLD) / (GIFT_THRESHOLD - SHIPPING_THRESHOLD);
+        progress = 50 + (giftProgress * 50);
+        statusText = 'Kostenloses Geschenk ab 99,99\u20AC';
+        const remaining = GIFT_THRESHOLD - cartValue;
+        helperText = 'Noch ' + formatEuro(remaining) + ' bis zum kostenlosen Geschenk';
+        isComplete = false;
+      } else {
+        // Progress from 0 to shipping mapped to 0-50%
+        progress = (cartValue / SHIPPING_THRESHOLD) * 50;
+        statusText = 'Kostenloser Versand ab 39,99\u20AC';
+        const remaining = SHIPPING_THRESHOLD - cartValue;
+        helperText = 'Noch ' + formatEuro(remaining) + ' bis zum kostenlosen Versand';
+        isComplete = false;
+      }
+
+      // Apply to DOM
+      progressFill.style.width = progress + '%';
+      progressStatus.textContent = statusText;
+      progressHelper.textContent = helperText;
+
+      // State classes
+      progressFill.classList.toggle('complete', isComplete);
+      progressStatus.classList.toggle('success', isComplete);
+      progressHelper.classList.toggle('success', isComplete);
+      progressComponent.classList.toggle('success-state', isComplete);
+
+      // Aria
+      progressComponent.setAttribute('aria-valuenow', Math.round(progress));
+      progressComponent.setAttribute('aria-label',
+        isComplete
+          ? 'All rewards unlocked'
+          : 'Cart progress: ' + Math.round(progress) + '% toward next reward'
+      );
+
+      // Gift item
+      giftItem.classList.toggle('visible', isGiftUnlocked);
+      giftSummaryLine.classList.toggle('visible', isGiftUnlocked);
+
+      // Shipping
+      if (isShippingFree) {
+        shippingValue.textContent = '0,00\u20AC';
+        shippingValue.classList.add('free');
+      } else {
+        shippingValue.textContent = '4,99\u20AC';
+        shippingValue.classList.remove('free');
+      }
+
+      // Subtotal
+      const shippingCost = isShippingFree ? 0 : 4.99;
+      const subtotal = cartValue + shippingCost;
+      const displayOriginal = cartOriginal + shippingCost + (isGiftUnlocked ? GIFT_ORIGINAL : 0);
+
+      if (cartOriginal !== cartValue || isGiftUnlocked) {
+        originalTotal.textContent = formatEuro(displayOriginal);
+        originalTotal.style.display = 'inline';
+      } else {
+        originalTotal.style.display = 'none';
+      }
+
+      subtotalValue.textContent = formatEuro(subtotal);
+    }
+
+    /* ========================================
+       EVENT HANDLERS (debounced)
+       ======================================== */
+    function changeQty(delta) {
+      const newQty = quantity + delta;
+      if (newQty < 1 || newQty > 20) return;
+      quantity = newQty;
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updateCart, 80);
+      // Immediate visual feedback for quantity
+      qtyDisplay.textContent = quantity;
+    }
+
+    qtyUp.addEventListener('click', () => changeQty(1));
+    qtyDown.addEventListener('click', () => changeQty(-1));
+
+    // Initialize
+    updateCart();
+
+    /* ========================================
+       SCROLL REVEAL
+       ======================================== */
+    try {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+      // Safety fallback: if elements still hidden after 1.5s, force show
+      setTimeout(() => {
+        document.querySelectorAll('.reveal:not(.visible)').forEach(el => {
+          el.classList.add('visible');
+        });
+      }, 1500);
+    } catch(e) {
+      // If IntersectionObserver not supported, show everything
+      document.body.classList.add('reveal-fallback');
+    }
+
+    /* ========================================
+       LIQUID CODE DISPLAY
+       ======================================== */
+    const liquidSourceCode = document.getElementById('liquidSource').innerHTML;
+    const codeEl = document.getElementById('liquidCode');
+    codeEl.textContent = liquidSourceCode;
+
+    if (typeof Prism !== 'undefined') {
+      Prism.highlightElement(codeEl);
+    }
+
+    /* ========================================
+       COPY BUTTON
+       ======================================== */
+    window.copyCode = function() {
+      navigator.clipboard.writeText(liquidSourceCode).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    };
+
+    /* ========================================
+       SLIDE NAVIGATION
+       ======================================== */
+    (function() {
+      const sections = document.querySelectorAll('section, .hero');
+      const dots = document.querySelectorAll('.slide-dot');
+
+      // Click dot → scroll to section
+      dots.forEach(dot => {
+        dot.addEventListener('click', () => {
+          const idx = parseInt(dot.dataset.section, 10);
+          if (sections[idx]) {
+            sections[idx].scrollIntoView({ behavior: 'smooth' });
+          }
+        });
+      });
+
+      // Track active section
+      const navObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const idx = Array.from(sections).indexOf(entry.target);
+            dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+          }
+        });
+      }, { threshold: 0.4 });
+
+      sections.forEach(s => navObserver.observe(s));
+    })();
+  </script>
+
+</body>
+</html>

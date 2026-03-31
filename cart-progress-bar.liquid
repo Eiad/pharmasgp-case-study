@@ -1,0 +1,263 @@
+{%- comment -%}
+  Cart Progress Bar Component
+  Displays a tiered progress bar in the shopping cart with two thresholds:
+  1. Free shipping
+  2. Free gift product
+
+  Usage: Include this snippet in your cart template or cart drawer.
+  Configure thresholds and gift product in Theme Settings.
+{%- endcomment -%}
+
+{%- liquid
+  assign shipping_threshold = section.settings.free_shipping_threshold | times: 100
+  assign gift_threshold = section.settings.free_gift_threshold | times: 100
+  assign gift_variant_id = section.settings.free_gift_variant_id
+  assign cart_total = cart.items_subtotal_price
+
+  comment
+    Continuous progress: 0-50% = toward shipping, 50-100% = toward gift
+    The bar never goes backwards — always grows as cart value increases.
+  endcomment
+
+  if cart_total >= gift_threshold
+    assign progress = 100
+    assign status_text = 'Sie erhalten ein Geschenk & Versand kostenlos!'
+    assign helper_text = ''
+    assign bar_state = 'complete'
+  elsif cart_total >= shipping_threshold
+    assign gift_range = gift_threshold | minus: shipping_threshold
+    assign gift_progress = cart_total | minus: shipping_threshold | times: 50 | divided_by: gift_range
+    assign progress = 50 | plus: gift_progress
+    assign remaining_cents = gift_threshold | minus: cart_total
+    assign remaining = remaining_cents | money_without_trailing_zeros
+    assign status_text = 'Kostenloses Geschenk ab ' | append: gift_threshold | divided_by: 100.0 | money
+    assign helper_text = 'Noch ' | append: remaining | append: ' bis zum kostenlosen Geschenk'
+    assign bar_state = 'active'
+  else
+    assign progress = cart_total | times: 50 | divided_by: shipping_threshold
+    assign remaining_cents = shipping_threshold | minus: cart_total
+    assign remaining = remaining_cents | money_without_trailing_zeros
+    assign status_text = 'Kostenloser Versand ab ' | append: shipping_threshold | divided_by: 100.0 | money
+    assign helper_text = 'Noch ' | append: remaining | append: ' bis zum kostenlosen Versand'
+    assign bar_state = 'active'
+  endif
+-%}
+
+<div class="cart-progress"
+     data-section-id="{{ section.id }}"
+     data-shipping-threshold="{{ shipping_threshold }}"
+     data-gift-threshold="{{ gift_threshold }}"
+     data-gift-variant-id="{{ gift_variant_id }}"
+     role="progressbar"
+     aria-valuenow="{{ progress }}"
+     aria-valuemin="0"
+     aria-valuemax="100"
+     aria-label="{{ status_text }}">
+
+  <p class="cart-progress__status{% if bar_state == 'complete' %} cart-progress__status--success{% endif %}">
+    {{ status_text }}
+  </p>
+
+  <div class="cart-progress__track">
+    <div class="cart-progress__fill{% if bar_state == 'complete' %} cart-progress__fill--complete{% endif %}"
+         style="width: {{ progress | at_most: 100 }}%">
+    </div>
+  </div>
+
+  {%- if helper_text != blank -%}
+    <p class="cart-progress__helper">{{ helper_text }}</p>
+  {%- endif -%}
+</div>
+
+<style>
+  .cart-progress {
+    background: #F0F4F6;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 16px 0;
+    transition: background 0.4s ease;
+  }
+
+  .cart-progress.is-complete {
+    background: #e8f5e0;
+  }
+
+  .cart-progress__status {
+    font-size: 13px;
+    font-weight: 500;
+    color: #002F6C;
+    margin: 0 0 10px;
+    transition: color 0.4s ease;
+  }
+
+  .cart-progress__status--success {
+    color: #4A9500;
+  }
+
+  .cart-progress__track {
+    height: 7px;
+    background: #d0d8de;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .cart-progress__fill {
+    height: 100%;
+    background: #002F6C;
+    border-radius: 4px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .cart-progress__fill--complete {
+    background: #4A9500;
+  }
+
+  .cart-progress__helper {
+    font-size: 12px;
+    color: #6b6d70;
+    margin: 8px 0 0;
+  }
+</style>
+
+<script>
+  (function() {
+    const el = document.querySelector('.cart-progress');
+    if (!el) return;
+
+    const SHIPPING = parseInt(el.dataset.shippingThreshold, 10);
+    const GIFT = parseInt(el.dataset.giftThreshold, 10);
+    const GIFT_VARIANT = el.dataset.giftVariantId;
+
+    let debounceTimer;
+
+    function formatMoney(cents) {
+      return (cents / 100).toLocaleString('de-DE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) + '\u20AC';
+    }
+
+    async function getCart() {
+      const res = await fetch('/cart.json');
+      return res.json();
+    }
+
+    async function addGift() {
+      await fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: [{ id: GIFT_VARIANT, quantity: 1 }] })
+      });
+    }
+
+    async function removeGift(lineIndex) {
+      await fetch('/cart/change.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ line: lineIndex, quantity: 0 })
+      });
+    }
+
+    async function update() {
+      const cart = await getCart();
+      const total = cart.items_subtotal_price;
+      const hasGift = cart.items.some(i => String(i.variant_id) === GIFT_VARIANT);
+
+      // Auto-add or remove gift
+      if (total >= GIFT && !hasGift) {
+        await addGift();
+        return update();
+      } else if (total < GIFT && hasGift) {
+        const idx = cart.items.findIndex(i => String(i.variant_id) === GIFT_VARIANT);
+        if (idx !== -1) {
+          await removeGift(idx + 1);
+          return update();
+        }
+      }
+
+      // Calculate progress
+      let progress, statusText, helperText, isComplete;
+
+      // Continuous progress: 0-50% = shipping, 50-100% = gift
+      if (total >= GIFT) {
+        progress = 100;
+        statusText = 'Sie erhalten ein Geschenk & Versand kostenlos!';
+        helperText = '';
+        isComplete = true;
+      } else if (total >= SHIPPING) {
+        const giftProgress = (total - SHIPPING) / (GIFT - SHIPPING);
+        progress = 50 + (giftProgress * 50);
+        statusText = 'Kostenloses Geschenk ab ' + formatMoney(GIFT);
+        helperText = 'Noch ' + formatMoney(GIFT - total) + ' bis zum kostenlosen Geschenk';
+        isComplete = false;
+      } else {
+        progress = (total / SHIPPING) * 50;
+        statusText = 'Kostenloser Versand ab ' + formatMoney(SHIPPING);
+        helperText = 'Noch ' + formatMoney(SHIPPING - total) + ' bis zum kostenlosen Versand';
+        isComplete = false;
+      }
+
+      // Update DOM
+      const fill = el.querySelector('.cart-progress__fill');
+      const status = el.querySelector('.cart-progress__status');
+      const helper = el.querySelector('.cart-progress__helper');
+
+      fill.style.width = progress + '%';
+      fill.classList.toggle('cart-progress__fill--complete', isComplete);
+      status.textContent = statusText;
+      status.classList.toggle('cart-progress__status--success', isComplete);
+      el.classList.toggle('is-complete', isComplete);
+      el.setAttribute('aria-valuenow', Math.round(progress));
+      el.setAttribute('aria-label', statusText);
+
+      if (helper) {
+        helper.textContent = helperText;
+        helper.style.display = helperText ? '' : 'none';
+      }
+    }
+
+    // Listen for cart changes
+    document.addEventListener('cart:change', function() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(update, 150);
+    });
+
+    // Intercept common cart form submissions
+    document.querySelectorAll('form[action="/cart"]').forEach(form => {
+      form.addEventListener('submit', function() {
+        setTimeout(() => {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(update, 300);
+        }, 200);
+      });
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Cart Progress Bar",
+  "settings": [
+    {
+      "type": "number",
+      "id": "free_shipping_threshold",
+      "label": "Free Shipping Threshold (€)",
+      "default": 39.99,
+      "info": "Cart value needed for free shipping"
+    },
+    {
+      "type": "number",
+      "id": "free_gift_threshold",
+      "label": "Free Gift Threshold (€)",
+      "default": 99.99,
+      "info": "Cart value needed for a free gift"
+    },
+    {
+      "type": "text",
+      "id": "free_gift_variant_id",
+      "label": "Gift Product Variant ID",
+      "info": "The variant ID of the free gift product"
+    }
+  ]
+}
+{% endschema %}
