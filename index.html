@@ -888,7 +888,7 @@
       min-height: auto;
     }
 
-    /* Slide number indicators */
+    /* Unified right-side slide navigation */
     .slide-nav {
       position: fixed;
       right: 24px;
@@ -896,8 +896,23 @@
       transform: translateY(-50%);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
+      gap: 6px;
       z-index: 100;
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 10px 8px;
+      border-radius: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,47,108,0.05);
+    }
+
+    .slide-dots {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 0;
     }
 
     .slide-dot {
@@ -905,7 +920,7 @@
       height: 8px;
       border-radius: 50%;
       background: var(--navy);
-      opacity: 0.2;
+      opacity: 0.18;
       transition: opacity 0.3s, transform 0.3s;
       cursor: pointer;
       border: none;
@@ -914,38 +929,18 @@
 
     .slide-dot.active {
       opacity: 1;
-      transform: scale(1.4);
+      transform: scale(1.5);
     }
 
     .slide-dot:hover {
-      opacity: 0.6;
-    }
-
-    /* ========================================
-       BOTTOM ARROW NAVIGATION
-       ======================================== */
-    .slide-arrows {
-      position: fixed;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      z-index: 100;
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      padding: 8px 12px;
-      border-radius: 40px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,47,108,0.06);
+      opacity: 0.5;
     }
 
     .slide-arrow {
-      width: 36px;
-      height: 36px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      border: 1.5px solid rgba(0,47,108,0.15);
+      border: 1.5px solid rgba(0,47,108,0.12);
       background: transparent;
       cursor: pointer;
       display: flex;
@@ -953,6 +948,7 @@
       justify-content: center;
       color: var(--navy);
       transition: all 0.2s;
+      padding: 0;
     }
 
     .slide-arrow:hover {
@@ -961,23 +957,13 @@
     }
 
     .slide-arrow:active {
-      transform: scale(0.93);
+      transform: scale(0.9);
     }
 
     .slide-arrow:disabled {
-      opacity: 0.25;
+      opacity: 0.15;
       cursor: default;
       pointer-events: none;
-    }
-
-    .slide-counter {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--navy);
-      min-width: 40px;
-      text-align: center;
-      letter-spacing: 0.02em;
-      user-select: none;
     }
 
     /* ========================================
@@ -1027,6 +1013,7 @@
 
       .slide-nav {
         right: 12px;
+        padding: 8px 6px;
       }
     }
 
@@ -1122,20 +1109,34 @@
         max-height: 400px;
       }
 
-      /* Slide nav hidden on mobile — too small */
+      /* On mobile: move nav to bottom-center, horizontal layout */
       .slide-nav {
-        display: none;
+        position: fixed;
+        top: auto;
+        right: auto;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        flex-direction: row;
+        padding: 6px 10px;
+        border-radius: 20px;
+        gap: 4px;
       }
 
-      .slide-arrows {
-        bottom: 12px;
-        padding: 6px 10px;
-        gap: 10px;
+      .slide-dots {
+        flex-direction: row;
+        gap: 8px;
+        padding: 0 6px;
       }
 
       .slide-arrow {
-        width: 32px;
-        height: 32px;
+        width: 26px;
+        height: 26px;
+      }
+
+      .slide-arrow--up svg,
+      .slide-arrow--down svg {
+        transform: rotate(-90deg);
       }
 
       /* Footer */
@@ -1216,7 +1217,6 @@
       .hero { min-height: auto; }
       .reveal { opacity: 1 !important; transform: none !important; }
       .slide-nav { display: none; }
-      .slide-arrows { display: none; }
       .demo-instruction { display: none; }
       .checkout-btn { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .progress-fill, .mini-progress-fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1787,25 +1787,22 @@
     </div>
   </footer>
 
-  <!-- Slide Navigation Dots -->
+  <!-- Unified Right-Side Navigation -->
   <nav class="slide-nav" id="slideNav" aria-label="Slide navigation">
-    <button class="slide-dot active" data-section="0" aria-label="Slide 1"></button>
-    <button class="slide-dot" data-section="1" aria-label="Slide 2"></button>
-    <button class="slide-dot" data-section="2" aria-label="Slide 3"></button>
-    <button class="slide-dot" data-section="3" aria-label="Slide 4"></button>
-    <button class="slide-dot" data-section="4" aria-label="Slide 5"></button>
+    <button class="slide-arrow slide-arrow--up" id="prevSlide" aria-label="Previous slide">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 10L8 6L4 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="slide-dots">
+      <button class="slide-dot active" data-section="0" aria-label="Slide 1"></button>
+      <button class="slide-dot" data-section="1" aria-label="Slide 2"></button>
+      <button class="slide-dot" data-section="2" aria-label="Slide 3"></button>
+      <button class="slide-dot" data-section="3" aria-label="Slide 4"></button>
+      <button class="slide-dot" data-section="4" aria-label="Slide 5"></button>
+    </div>
+    <button class="slide-arrow slide-arrow--down" id="nextSlide" aria-label="Next slide">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
   </nav>
-
-  <!-- Bottom Arrow Navigation -->
-  <div class="slide-arrows" id="slideArrows">
-    <button class="slide-arrow slide-arrow--prev" id="prevSlide" aria-label="Previous slide">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-    <span class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">5</span></span>
-    <button class="slide-arrow slide-arrow--next" id="nextSlide" aria-label="Next slide">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M8 5L13 10L8 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-  </div>
 
   <!-- ========================================
        SCRIPTS
@@ -2028,12 +2025,8 @@
       const dots = document.querySelectorAll('.slide-dot');
       const prevBtn = document.getElementById('prevSlide');
       const nextBtn = document.getElementById('nextSlide');
-      const currentSlideEl = document.getElementById('currentSlide');
-      const totalSlidesEl = document.getElementById('totalSlides');
 
       let activeIndex = 0;
-
-      totalSlidesEl.textContent = sections.length;
 
       function goToSlide(idx) {
         if (idx < 0 || idx >= sections.length) return;
@@ -2043,11 +2036,7 @@
       }
 
       function updateUI() {
-        // Dots
         dots.forEach((d, i) => d.classList.toggle('active', i === activeIndex));
-        // Counter
-        currentSlideEl.textContent = activeIndex + 1;
-        // Arrow states
         prevBtn.disabled = activeIndex === 0;
         nextBtn.disabled = activeIndex === sections.length - 1;
       }
