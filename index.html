@@ -922,6 +922,65 @@
     }
 
     /* ========================================
+       BOTTOM ARROW NAVIGATION
+       ======================================== */
+    .slide-arrows {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 100;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 8px 12px;
+      border-radius: 40px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,47,108,0.06);
+    }
+
+    .slide-arrow {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0,47,108,0.15);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--navy);
+      transition: all 0.2s;
+    }
+
+    .slide-arrow:hover {
+      background: var(--bg-light);
+      border-color: var(--navy);
+    }
+
+    .slide-arrow:active {
+      transform: scale(0.93);
+    }
+
+    .slide-arrow:disabled {
+      opacity: 0.25;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .slide-counter {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--navy);
+      min-width: 40px;
+      text-align: center;
+      letter-spacing: 0.02em;
+      user-select: none;
+    }
+
+    /* ========================================
        RESPONSIVE — TABLET (max-width: 900px)
        ======================================== */
     @media (max-width: 900px) {
@@ -1068,6 +1127,17 @@
         display: none;
       }
 
+      .slide-arrows {
+        bottom: 12px;
+        padding: 6px 10px;
+        gap: 10px;
+      }
+
+      .slide-arrow {
+        width: 32px;
+        height: 32px;
+      }
+
       /* Footer */
       .site-footer {
         padding: 40px 0;
@@ -1146,6 +1216,7 @@
       .hero { min-height: auto; }
       .reveal { opacity: 1 !important; transform: none !important; }
       .slide-nav { display: none; }
+      .slide-arrows { display: none; }
       .demo-instruction { display: none; }
       .checkout-btn { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .progress-fill, .mini-progress-fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1725,6 +1796,17 @@
     <button class="slide-dot" data-section="4" aria-label="Slide 5"></button>
   </nav>
 
+  <!-- Bottom Arrow Navigation -->
+  <div class="slide-arrows" id="slideArrows">
+    <button class="slide-arrow slide-arrow--prev" id="prevSlide" aria-label="Previous slide">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">5</span></span>
+    <button class="slide-arrow slide-arrow--next" id="nextSlide" aria-label="Next slide">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M8 5L13 10L8 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
   <!-- ========================================
        SCRIPTS
        ======================================== -->
@@ -1939,33 +2021,78 @@
     };
 
     /* ========================================
-       SLIDE NAVIGATION
+       SLIDE NAVIGATION (dots + arrows + keyboard)
        ======================================== */
     (function() {
-      const sections = document.querySelectorAll('section, .hero');
+      const sections = Array.from(document.querySelectorAll('section, .hero'));
       const dots = document.querySelectorAll('.slide-dot');
+      const prevBtn = document.getElementById('prevSlide');
+      const nextBtn = document.getElementById('nextSlide');
+      const currentSlideEl = document.getElementById('currentSlide');
+      const totalSlidesEl = document.getElementById('totalSlides');
 
-      // Click dot → scroll to section
+      let activeIndex = 0;
+
+      totalSlidesEl.textContent = sections.length;
+
+      function goToSlide(idx) {
+        if (idx < 0 || idx >= sections.length) return;
+        activeIndex = idx;
+        sections[idx].scrollIntoView({ behavior: 'smooth' });
+        updateUI();
+      }
+
+      function updateUI() {
+        // Dots
+        dots.forEach((d, i) => d.classList.toggle('active', i === activeIndex));
+        // Counter
+        currentSlideEl.textContent = activeIndex + 1;
+        // Arrow states
+        prevBtn.disabled = activeIndex === 0;
+        nextBtn.disabled = activeIndex === sections.length - 1;
+      }
+
+      // Click dots
       dots.forEach(dot => {
         dot.addEventListener('click', () => {
-          const idx = parseInt(dot.dataset.section, 10);
-          if (sections[idx]) {
-            sections[idx].scrollIntoView({ behavior: 'smooth' });
-          }
+          goToSlide(parseInt(dot.dataset.section, 10));
         });
       });
 
-      // Track active section
+      // Click arrows
+      prevBtn.addEventListener('click', () => goToSlide(activeIndex - 1));
+      nextBtn.addEventListener('click', () => goToSlide(activeIndex + 1));
+
+      // Keyboard arrows
+      document.addEventListener('keydown', (e) => {
+        // Don't hijack if user is typing in an input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          goToSlide(activeIndex + 1);
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          goToSlide(activeIndex - 1);
+        }
+      });
+
+      // Track which section is visible (sync when user scrolls manually)
       const navObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            const idx = Array.from(sections).indexOf(entry.target);
-            dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+            const idx = sections.indexOf(entry.target);
+            if (idx !== -1) {
+              activeIndex = idx;
+              updateUI();
+            }
           }
         });
       }, { threshold: 0.4 });
 
       sections.forEach(s => navObserver.observe(s));
+
+      // Initial state
+      updateUI();
     })();
   </script>
 
