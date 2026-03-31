@@ -1930,10 +1930,8 @@
         shippingValue.classList.remove('free');
       }
 
-      // Subtotal
-      const shippingCost = isShippingFree ? 0 : 4.99;
-      const subtotal = cartValue + shippingCost;
-      const displayOriginal = cartOriginal + shippingCost + (isGiftUnlocked ? GIFT_ORIGINAL : 0);
+      // Subtotal (product total only, shipping shown separately)
+      const displayOriginal = cartOriginal + (isGiftUnlocked ? GIFT_ORIGINAL : 0);
 
       if (cartOriginal !== cartValue || isGiftUnlocked) {
         originalTotal.textContent = formatEuro(displayOriginal);
@@ -1942,7 +1940,7 @@
         originalTotal.style.display = 'none';
       }
 
-      subtotalValue.textContent = formatEuro(subtotal);
+      subtotalValue.textContent = formatEuro(cartValue);
     }
 
     /* ========================================
